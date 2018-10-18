@@ -5,66 +5,17 @@
  */
 package Process;
 
-import Listener.ServerManagerListener;
-import Manager.ConnectionManager;
-import Model.ACK;
-import Model.Message;
-import java.util.Scanner;
-
 /**
  *
  * @author Marcelo
  */
 public class P1 {
-    
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) {
-        // TODO code application logic here
-        Scanner keyboard = new Scanner(System.in);
-        int clock = 1;
-        int serverPort = 6789;
-        ConnectionManager manager = new ConnectionManager(serverPort);
-        manager.setServerManagerListener(new ServerManagerListener() {
-            @Override
-            public void messageReceived(Message message) {
-                // recebeu uma mensagem
-            }
 
-            @Override
-            public void ACKReceived(ACK ack) {
-                // recebeu um ack
-            }
-        });
-        
-        System.out.println("Iniciou P1 na porta 6789");
-        
-        int esperaEntrada = keyboard.nextInt();
-        
-        manager.addConnection(6790);
-        System.out.println("Criou conexão com a partoa 6790");
-        manager.addConnection(6791);
-        System.out.println("Criou conexão com a partoa 6791");
-        
-        int option = 0;
-        do{
-            option = keyboard.nextInt();
-            if(option!=0){
-                try{
-                    sendMessage(manager, "1", clock);
-                } catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        } while(option!=0);
-        
-        manager.close();
-        System.out.println("Finalizou P1");
-    }
-    
-    public static void sendMessage(ConnectionManager cm, String id, int time) throws Exception{
-        Message m = new Message(id, time);
-        cm.sendMessageToServer(m);
+    public static void main(String[] args) {
+        int serverPort = 6789;
+        int[] connectionPorts = {6790, 6791};
+        Process p = new Process();
+        p.exec(1, serverPort, connectionPorts);
+        //exec(pid do processo, porta do servidor, vetor de conexões)
     }
 }

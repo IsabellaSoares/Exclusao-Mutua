@@ -10,32 +10,55 @@ package Model;
  * @author Marcelo
  */
 public class ACK {
-    private String id;
-    private int time;
-    private int process;
+    private int id; //PID do processo que está enviando o ACK
+    private int time; //Clock
+    private int resource; //Recurso que o processo quer utilizar
+    private int dest; //Processo que pediu o recurso
+    private int isAck;
 
-    public String getId() {
+    //Retorna ID da mensagem
+    public int getId() {
         return id;
     }
 
-    public void setId(String id) {
+    //Define ID da mensagem
+    public void setId(int id) {
         this.id = id;
     }
 
+    //Retorna clock do ACK
     public int getTime() {
         return time;
     }
 
+    //Define clock do ACK
     public void setTime(int time) {
         this.time = time;
     }
 
+    //Retorna o processo que está enviando o ACK
     public int getProcess() {
-        return process;
+        return resource;
     }
 
-    public void setProcess(int process) {
-        this.process = process;
+    //Define o processo que está enviando o ACK
+    public void setProcess(int recsource) {
+        this.resource = resource;
+    }
+
+    public void setIsAck(int isAck) {
+        this.isAck = isAck;
     }
     
+    public int getIsAck() {
+        return isAck;
+    }
+
+    public void setDest(int dest) {
+        this.dest = dest;
+    }
+
+    public int getDest() {
+        return dest;
+    }
 }

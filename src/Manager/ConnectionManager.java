@@ -5,12 +5,13 @@
  */
 package Manager;
 
+import Tools.Convert;
 import Listener.ServerListener;
 import Listener.ServerManagerListener;
 import Model.ACK;
-import Model.Client;
+import Connection.Client;
 import Model.Message;
-import Model.Server;
+import Connection.Server;
 
 /**
  *
@@ -22,19 +23,20 @@ public class ConnectionManager {
     private ServerManagerListener serverManagerListener;
     
     public ConnectionManager(int serverPort){
-        // cria cliente
+        //Cria cliente
         client = new Client();
         
-        // cria servidor
+        //Cria servidor
         this.server = new Server(serverPort);
+        
         this.server.setServerListener(new ServerListener() {
             @Override
             public void receivePacket(String json) {
-               if(Convert.isACK(json)){
-                   serverManagerListener.ACKReceived(Convert.JsonToACK(json));
-               } else {
-                   serverManagerListener.messageReceived(Convert.JsonToMessage(json));
-               }
+                if(Convert.isACK(json)){
+                    serverManagerListener.ACKReceived(Convert.JsonToACK(json));
+                } else {
+                    serverManagerListener.messageReceived(Convert.JsonToMessage(json));
+                }
             }
         });
     }
@@ -43,18 +45,22 @@ public class ConnectionManager {
         this.serverManagerListener = serverManagerListener;
     }
     
+    //Adiciona as conexões aos outros processos
     public void addConnection(int port){
         client.addConnection(port);
     }
     
+    //Envia mensagem para o servidor
     public void sendMessageToServer(Message message) throws Exception{
         client.outToServer(Convert.MessageToJson(message));
     }
     
-    public void sendACKToServer(ACK ack){
-    
+    //Envia ACK para o servidor
+    public void sendACKToServer(ACK ack) throws Exception{
+        client.outToServer(Convert.ACKToJson(ack));
     }
     
+    //Encerra o processo e fecha as conexões
     public void close(){
         try {
             this.client.close();

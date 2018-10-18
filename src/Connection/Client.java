@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package Model;
+package Connection;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -19,21 +19,16 @@ import java.util.List;
  * @author Marcelo
  */
 public class Client {
-//    public static void main (String args[]) throws Exception {
-//        Socket client = new Socket("localhost", 6789);
-//        DataOutputStream outToServer = new DataOutputStream(client.getOutputStream());
-//        String msg = "mensagem do cliente!";
-//        outToServer.writeBytes(msg);
-//        client.close();
-//    }
     
-    private List<Socket> socketList = null;
-    
+    private List<Socket> socketList = null; //Lista de conexões 
     private int port;
+    
+    //Lista de clientes
     public Client(){
         socketList = new ArrayList<>();
     }
     
+    //Adiciona as conexões
     public void addConnection (int port) {
         try{
             Socket client = new Socket("localhost", port);
@@ -43,23 +38,26 @@ public class Client {
         }
     }
     
+    //Envia a mensagem para o servidor
     public void outToServer (String json) throws Exception {
-        for(Socket client : socketList){
+        for(int i=0; i<socketList.size(); i++){
+            Socket client = socketList.get(i);
             DataOutputStream outToServer = new DataOutputStream(client.getOutputStream());
+            
             if(client!=null && outToServer!=null){
                 try{
-                    outToServer.writeBytes(json + 'n');
+                    outToServer.writeBytes(json + '\n');
+                    outToServer.flush();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    //e.printStackTrace();
+                    client.close();
+                    socketList.remove(i--);
                 }
             }
-            /*for(Socket s:socketList){
-                ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-                out.writeObject(json);
-            }*/
         }
     }
     
+    //Fecha socket
     public void close() throws Exception {
         for(Socket client : socketList){
             client.close();
