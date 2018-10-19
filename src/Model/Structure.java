@@ -15,6 +15,7 @@ import java.util.List;
 public class Structure {
     private Integer id = null; //Id da mensagem e do ACK
     private Integer time = null; //Clock da mensagem e do ACK
+    private Integer resource = null;
     private Message message; //Mensagem
     private List<ACK> ackList; //Lista de ACKs da mensagem
     
@@ -35,6 +36,9 @@ public class Structure {
         if(this.time==null){
             this.time = message.getTime();
         }
+        if(this.resource==null){
+            this.resource = message.getResource();
+        }
     }
 
     public Integer getTime() {
@@ -54,9 +58,20 @@ public class Structure {
         if(this.time==null){
             this.time = ack.getTime();
         }
+        if(this.resource==null){
+            this.resource = message.getResource();
+        }
     }
     
     public int getNumbersOfACK(){
         return this.ackList.size();
+    }
+
+    public Integer getResource() {
+        return resource;
+    }
+
+    public void setResource(Integer resource) {
+        this.resource = resource;
     }
 }

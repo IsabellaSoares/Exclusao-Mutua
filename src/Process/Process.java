@@ -7,6 +7,7 @@ package Process;
 
 import Listener.ServerManagerListener;
 import Manager.ConnectionManager;
+import Manager.MessageManager;
 import Model.ACK;
 import Model.Structure;
 import Model.Message;
@@ -19,7 +20,7 @@ import java.util.Scanner;
  * @author Marcelo
  */
 public class Process {
-    private static int clock = 1;
+    public static int clock = 1;
     private static boolean restricState = false;
     private static int pid;
     private static Scanner keyboard;
@@ -27,25 +28,28 @@ public class Process {
     public void exec(int pid, int serverPort, int[] connectionPorts) {
         this.pid = pid;
         keyboard = new Scanner(System.in);
-        List<Structure> messageList = new ArrayList<Structure>(); //Lista de mensagens
+        
                 
         ConnectionManager manager = new ConnectionManager(serverPort); //Gerenciador de conexão
+        
+        MessageManager messageManager = new MessageManager(pid);
         
         manager.setServerManagerListener(new ServerManagerListener() {
             @Override
             public void messageReceived(Message message) {
                 // recebeu uma mensagem
                 System.out.println("[Log] P"+message.getId()+" solicitou acesso.");                
-                //addMessagem(messageList, message); //Adiociona mensagem na lista
-                //sendACK(manager, pid, message); //Envia ACK
+                messageManager.addMessage(message); //Adiociona mensagem na lista
+                sendACK(manager, pid, message); //Envia ACK
             }
 
             @Override
             public void ACKReceived(ACK ack) {
                 //Recebeu um ACK
-                System.out.println("[Log] Recebeu um 'Okay' de P" + ack.getProcess());
-                ackReceived(messageList, ack); //Adiciona ACK na lista
-                updateList(messageList);
+                if(ack.getDest()==pid){
+                    System.out.println("[Log] Recebeu um 'Okay' de P" + ack.getId());
+                }
+                messageManager.addAck(ack); //Adiciona ACK na lista
             }
         });
         
@@ -90,6 +94,9 @@ public class Process {
                         //Exibe o valor de clock
                         System.out.println("Clock: " + clock);
                         break;
+                    case 3:
+                        messageManager.printList();
+                        break;
                 }
             }
         } while(option!=0);
@@ -102,10 +109,11 @@ public class Process {
     public static void sendACK(ConnectionManager cm, int pid, Message message){
         try {
             ACK ack = new ACK();
-            ack.setId(message.getId());
+            ack.setId(pid);
             ack.setTime(message.getTime());
-            ack.setProcess(pid);
-            
+            ack.setResource(message.getResource());
+            ack.setIsAck(1);
+            ack.setDest(message.getId());
             // Verificar aqui se é ACK ou NACK
             
             cm.sendACKToServer(ack);
@@ -113,106 +121,6 @@ public class Process {
         }
     }
     
-    public static synchronized void messageReceived(List<Structure> lista, Message message){
-        boolean addedToList = false;
-        for(int i=0; i<lista.size() && !addedToList; i++){
-            Structure currentStructure = lista.get(i);
-            if(message.getTime()==currentStructure.getTime()){
-                // item da lista de mensagens tem o mesmo clock da mensagem recebida
-                // comparar o pid
-                if(message.getId()<currentStructure.getId()){
-                    // o pid da mensagem recebida eh menor do que o pid do item da lista
-                    // cria uma nova estrutura e insere na lista
-                    Structure newStructure = new Structure();
-                    newStructure.setMessage(message);
-                    lista.add(i, newStructure);
-                    addedToList = true;
-                } else if(message.getId()==currentStructure.getId()){
-                    // o pid da mensagem recebida eh igual ao pid do item da lista
-                    // foi recebido algum ack dessa mensagem antes da propria mensagem chegar
-                    // atualiza a estrutura com a mensagem
-                    currentStructure.setMessage(message);
-                    addedToList = true;
-                }
-            } else if(message.getTime()>currentStructure.getTime()){
-                // mensagem recebida tem o clock maior que o do item da lista
-                // cria uma nova estrutura e insere na lista
-                Structure newStructure = new Structure();
-                newStructure.setMessage(message);
-                lista.add(i, newStructure);
-                addedToList = true;
-            }
-        }
-        if(!addedToList){
-            Structure e = new Structure();
-            e.setMessage(message);
-            lista.add(e);
-        }
-    }
-    
-    public static synchronized void ackReceived(List<Structure> lista, ACK ack){
-        boolean addedToList = false;
-        
-        if (ack.getIsAck() == 1) {
-            for(int i=0; i<lista.size() && !addedToList; i++){
-                Structure currentStructure = lista.get(i);
-                if(ack.getTime()==currentStructure.getTime()){
-                    // item da lista de mensagens tem o mesmo clock do ack recebido
-                    // comparar o pid
-                    if(ack.getId()<currentStructure.getId()){
-                        // o pid do ack recebida eh menor do que o pid do item da lista
-                        // cria uma nova estrutura e insere na lista
-                        Structure newStructure = new Structure();
-                        newStructure.addACK(ack);
-                        lista.add(i, newStructure);
-                        addedToList = true;
-                    } else if(ack.getId()==currentStructure.getId()){
-                        // o pid da mensagem recebida eh igual ao pid do item da lista
-                        // foi recebido algum ack dessa mensagem antes da propria mensagem chegar
-                        // atualiza a estrutura com a mensagem
-                        currentStructure.addACK(ack);
-                        addedToList = true;
-                    }
-                } else if(ack.getTime()>currentStructure.getTime()){
-                    // mensagem recebida tem o clock maior que o do item da lista
-                    // cria uma nova estrutura e insere na lista
-                    Structure newStructure = new Structure();
-                    newStructure.addACK(ack);
-                    lista.add(i, newStructure);
-                    addedToList = true;
-                }
-            }
-            if(!addedToList){
-                Structure e = new Structure();
-                e.addACK(ack);
-                lista.add(e);
-            }
-        } else {
-            if (ack.getDest()== pid) {
-                System.out.println("[Log] O processo "+ack.getId()+" está utilizando o recurso "+ack.getProcess()+". Aguarde.");
-            }
-        }
-    }
-    
-    public static synchronized void updateList(List<Structure> lista){
-        try{
-            boolean removed = true;
-            for(int i=0; i<lista.size() && removed; i++){
-                Structure currentStructure = lista.get(i);
-                if(currentStructure.getMessage()!=null && currentStructure.getNumbersOfACK()==3){
-                    if(currentStructure.getTime() > clock){
-                        clock = currentStructure.getTime();
-                    }
-                    lista.remove(i--);
-                } else {
-                    removed = false;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Deu erro updateList()!");
-        }
-    }
     
 //    public static void restricArea () {
 //        restricState = true;

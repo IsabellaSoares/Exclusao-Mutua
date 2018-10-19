@@ -37,12 +37,12 @@ public class ACK {
     }
 
     //Retorna o processo que está enviando o ACK
-    public int getProcess() {
+    public int getResource() {
         return resource;
     }
 
     //Define o processo que está enviando o ACK
-    public void setProcess(int recsource) {
+    public void setResource(int resource) {
         this.resource = resource;
     }
 

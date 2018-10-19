@@ -5,6 +5,7 @@
  */
 package Model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,25 +13,25 @@ import java.util.List;
  *
  * @author Marcelo
  */
-public class Message {
-    private int recurso;
+public class Message implements Serializable{
+    private int resource;
     private int pid; //Id que identifica a mensagem
     private int time; //Refere-se ao clock da mensagem
 
     public Message(){}
     
     public Message(int recurso, int pid, int time){
-        this.recurso = recurso;
+        this.resource = recurso;
         this.pid = pid;
         this.time = time;
     }
 
-    public int getRecurso() {
-        return recurso;
+    public int getResource() {
+        return resource;
     }
 
-    public void setRecurso(int recurso) {
-        this.recurso = recurso;
+    public void setResource(int resource) {
+        this.resource = resource;
     }
     
     //Retorna o pid do processo que está enviando a mensagem
