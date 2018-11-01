@@ -5,13 +5,15 @@
  */
 package Process;
 
+import Listener.MessageManagerListener;
 import Listener.ServerManagerListener;
 import Manager.ConnectionManager;
 import Manager.MessageManager;
+import Manager.ResourceManager;
 import Model.ACK;
 import Model.Structure;
 import Model.Message;
-import java.util.ArrayList;
+import Model.Resource;
 import java.util.List;
 import java.util.Scanner;
 
@@ -20,82 +22,122 @@ import java.util.Scanner;
  * @author Marcelo
  */
 public class Process {
-    public static int clock = 1;
-    private static boolean restricState = false;
+    
+    private static final int FREE = 0;
+    private static final int USING_RESOURCE = 1;
+    private static final int WAITING_RESPONSE_RESOURCE = 2;
+    
+    // variaveis referente a conexao
     private static int pid;
+    private static int serverPort;
+    private static int[] connectionPorts;
+    private static int currentLogicalClock = 1;
+    
+    // gerenciadores
+    private static ConnectionManager manager;
+    private static MessageManager sendedRequest;
+    private static MessageManager receivedRequest;
+    private static ResourceManager resourceManager;
+    
     private static Scanner keyboard;
     
-    public void exec(int pid, int serverPort, int[] connectionPorts) {
+    public Process(int pid, int serverPort, int[] connectionPorts){
+        
+        // inicializa as variaveis
+        this.connectionPorts = connectionPorts;
+        this.serverPort = serverPort;
         this.pid = pid;
-        keyboard = new Scanner(System.in);
+        this.keyboard = new Scanner(System.in);
+        this.manager = new ConnectionManager(serverPort); //Gerenciador de conexão
+        this.sendedRequest = new MessageManager(pid);
+        this.receivedRequest = new MessageManager(pid);
+        this.resourceManager = new ResourceManager();
         
-                
-        ConnectionManager manager = new ConnectionManager(serverPort); //Gerenciador de conexão
+        // inicializa os listeners
+        this.sendedRequest.setListener(new MessageManagerListener() {
+            @Override
+            public void notifyProcess(Structure structure) {
+                Message message = structure.getMessage();
+                if(!resourceManager.isUsing(message.getRequestedResource())){
+                    Resource resource = new Resource();
+                    resource.setResourceId(message.getRequestedResource());
+                    
+                    List<Structure> structures = receivedRequest.getMessageList();
+                    for(Structure s : structures){
+                        Message m = s.getMessage();
+                        if(m!=null){
+                            if(m.getRequestedResource()==message.getRequestedResource()){
+                                resource.putMessage(m);
+                            }
+                        }
+                    }
+                    
+                    resourceManager.addResource(resource);
+                    System.out.println("[Log] O processo P"+pid+" começou a usar o recurso "+message.getRequestedResource());
+                } else {
+                    System.out.println("[Log] O processo P"+pid+" já está utilizando o recurso "+message.getRequestedResource());
+                }
+            }
+        });
         
-        MessageManager messageManager = new MessageManager(pid);
-        
-        manager.setServerManagerListener(new ServerManagerListener() {
+        this.manager.setServerManagerListener(new ServerManagerListener() {
             @Override
             public void messageReceived(Message message) {
                 // recebeu uma mensagem
-                System.out.println("[Log] P"+message.getId()+" solicitou acesso.");                
-                messageManager.addMessage(message); //Adiociona mensagem na lista
-                sendACK(manager, pid, message); //Envia ACK
+                System.out.println("[Log] P"+message.getSenderPid()+" solicitou acesso ao recurso "+message.getRequestedResource());
+                if(resourceManager.isUsing(message.getRequestedResource())){
+                    resourceManager.putMessage(message.getRequestedResource(), message);
+                    sendACK(message, ACK.NACK);
+                } else if (sendedRequest.isRequestingFor(message.getRequestedResource())) {
+                    receivedRequest.addMessage(message);
+                    sendACK(message, ACK.NACK);
+                } else {
+                    sendACK(message, ACK.ACK);
+                }
+                if(message.getLogicalClock()> currentLogicalClock){
+                    currentLogicalClock = message.getLogicalClock();
+                }
             }
 
             @Override
             public void ACKReceived(ACK ack) {
                 //Recebeu um ACK
-                if(ack.getDest()==pid){
-                    System.out.println("[Log] Recebeu um 'Okay' de P" + ack.getId());
+                if(ack.getType()==ACK.ACK){
+                    System.out.println("[Log] Recebeu um 'ACK' de P" + ack.getSenderPid()+" para o recurso "+ack.getRequestedResource()+".");
+                    sendedRequest.addAck(ack); //Adiciona ACK na lista
+                } else {
+                    System.out.println("[Log] Recebeu um 'NACK'. Aguardando o processo P"+ack.getSenderPid()+" terminar de utilizar o recurso "+ack.getRequestedResource()+".");
                 }
-                messageManager.addAck(ack); //Adiciona ACK na lista
+                    
             }
         });
         
-        //Inicia o servidor do processo e aguarda que todos os outros processos sejam iniciados
         System.out.println("Iniciou P"+pid+" na porta "+serverPort);
+    }
+    
+    public void exec() {
+        
         System.out.print("Pressione 1 para iniciar as conexões:\n>> ");
         keyboard.next();
         
-        //Cria conexão com os outros processos e com ele mesmo
-        manager.addConnection(connectionPorts[0]);
-        System.out.println("Criou conexão com a porta "+ connectionPorts[0]);
-        manager.addConnection(connectionPorts[1]);
-        System.out.println("Criou conexão com a porta " + connectionPorts[1]);
-        manager.addConnection(serverPort);
-        System.out.println("Criou conexão com a porta " + serverPort);
+        //Cria conexão com os outros processos
+        for(int i=0; i<connectionPorts.length; i++){
+            manager.addConnection(connectionPorts[i]);
+            System.out.println("Criou conexão com a porta "+ connectionPorts[i]);
+        }
         
-        System.out.print("\nMenu:\n 0 - Finaliza processo\n 1 - Solicitar acesso\n 2 - Ver clock\n");
+        System.out.print("\nMenu:\n 0 - Finaliza processo\n 1 - Solicitar acesso\n 2 - Liberar recurso\n");
         
-        int option = 0;
-        int recurso = 0;
-        
+        int option;
         do{
             option = keyboard.nextInt();
-            
             if(option!=0){
                 switch(option){
-                    case 1 : 
-                        //Envia mensagem para o servidor
-                        do {
-                            System.out.print("Escolha um recurso: ");
-                            recurso = keyboard.nextInt();                            
-                        } while (recurso < 1 || recurso > 4);
-                        
-                        try{
-                            Message m = new Message(recurso, pid, ++clock);
-                            manager.sendMessageToServer(m);
-                        } catch (Exception e){
-                            e.printStackTrace();
-                        }
+                    case 1 :
+                        requestAccess();
                         break;
                     case 2:
-                        //Exibe o valor de clock
-                        System.out.println("Clock: " + clock);
-                        break;
-                    case 3:
-                        messageManager.printList();
+                        freeResource();
                         break;
                 }
             }
@@ -103,36 +145,61 @@ public class Process {
         
         manager.close();
         System.out.println("Finalizou P"+pid);
-        return;
     }
     
-    public static void sendACK(ConnectionManager cm, int pid, Message message){
+    public static void sendACK(Message message, int type){
         try {
-            ACK ack = new ACK();
-            ack.setId(pid);
-            ack.setTime(message.getTime());
-            ack.setResource(message.getResource());
-            ack.setIsAck(1);
-            ack.setDest(message.getId());
-            // Verificar aqui se é ACK ou NACK
+            ACK ack = new ACK();            
+            ack.setMessageId(message.getMessageId());
+            ack.setSenderPid(pid);
+            ack.setDestinationPid(message.getSenderPid());
+            ack.setLogicalClock(message.getLogicalClock());
+            ack.setRequestedResource(message.getRequestedResource());
+            ack.setType(type);
             
-            cm.sendACKToServer(ack);
+            manager.sendACKToServer(ack, message.getSenderPort());
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }
-    
-    
-//    public static void restricArea () {
-//        restricState = true;
-//        System.out.println("Processo P"+pid+" entrou na área restrita. Aperte 1 para sair.");
-//        int option = 0;
-//        
-//        do {
-//            option = keyboard.nextInt();
-//            System.out.println("option: "+option);
-//        } while (option != 1);
-//        
-//        restricState = false;
-//        System.out.println("Processo P"+pid+" está saindo da área restrita.");
-//    }
+
+    private void requestAccess() {
+        try{
+            int recurso = 0;
+            System.out.print("Escolha um recurso: ");
+            recurso = keyboard.nextInt();
+            Message m = new Message(recurso, pid, ++currentLogicalClock, serverPort);
+            sendedRequest.addMessage(m);
+            manager.sendMessageToServer(m);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private void freeResource() {
+        if(resourceManager.isEmpty()){
+            System.out.println("Nenhum recurso está sendo utilizado!");
+            return;
+        }
+        System.out.print("Escolha um recurso para liberar: ");
+        resourceManager.printResourceId();
+        System.out.print("\n>> ");
+        
+        int resourceId = keyboard.nextInt();
+        
+        if(resourceManager.isUsing(resourceId)){
+            Resource resource = resourceManager.removeResource(resourceId);
+            if(resource!=null){
+                List<Message> messageList = resource.getMessageList();
+                if(messageList!=null && messageList.size()>0){
+                    for(Message message : messageList){
+                        sendACK(message, ACK.ACK);
+                    }
+                }
+            }
+            System.out.println("[Log] O recurso "+resourceId+" foi liberado.");
+        } else {
+            System.out.println("O recurso "+resourceId+" não está sendo utilizado!");
+        }
+    }
 }

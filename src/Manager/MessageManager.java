@@ -9,7 +9,6 @@ import Listener.MessageManagerListener;
 import Model.ACK;
 import Model.Message;
 import Model.Structure;
-import static Process.Process.clock;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,35 +33,24 @@ public class MessageManager {
     
     public synchronized void addMessage(Message message){
         boolean addedToList = false;
+        
         for(int i=0; i<messageList.size() && !addedToList; i++){
             Structure currentStructure = messageList.get(i);
-            if(message.getTime()==currentStructure.getTime()){
-                // item da lista de mensagens tem o mesmo clock da mensagem recebida
-                // comparar o pid
-                if(message.getId()<currentStructure.getId()){
-                    // o pid da mensagem recebida eh menor do que o pid do item da lista
-                    // cria uma nova estrutura e insere na lista
-                    Structure newStructure = new Structure();
-                    newStructure.setMessage(message);
-                    messageList.add(i, newStructure);
-                    addedToList = true;
-                } else if(message.getId()==currentStructure.getId()){
-                    // o pid da mensagem recebida eh igual ao pid do item da lista
-                    // foi recebido algum ack dessa mensagem antes da propria mensagem chegar
-                    // atualiza a estrutura com a mensagem
-                    currentStructure.setMessage(message);
-                    addedToList = true;
-                }
-            } else if(message.getTime()<currentStructure.getTime()){
-                // mensagem recebida tem o clock maior que o do item da lista
-                // cria uma nova estrutura e insere na lista
+            if(message.getMessageId()==currentStructure.getMessageId()){
+                // atualiza o item
+                currentStructure.setMessage(message);
+                addedToList = true;
+            } else if (message.getMessageId()<currentStructure.getMessageId()){
+                // cria um novo item no meio
                 Structure newStructure = new Structure();
                 newStructure.setMessage(message);
                 messageList.add(i, newStructure);
                 addedToList = true;
             }
         }
+        
         if(!addedToList){
+            // cria um novo item no final
             Structure e = new Structure();
             e.setMessage(message);
             messageList.add(e);
@@ -71,45 +59,26 @@ public class MessageManager {
     
     public synchronized void addAck(ACK ack){
         boolean addedToList = false;
+        for(int i=0; i<messageList.size() && !addedToList; i++){
+            Structure currentStructure = messageList.get(i);
+            if(ack.getMessageId()==currentStructure.getMessageId()){
+                // atualiza o item
+                currentStructure.addACK(ack);
+                addedToList = true;
+            } else if (ack.getMessageId()<currentStructure.getMessageId()){
+                // cria um novo item no meio
+                Structure newStructure = new Structure();
+                newStructure.addACK(ack);
+                messageList.add(i, newStructure);
+                addedToList = true;
+            }
+        }
         
-        if (ack.getIsAck() == 1) {
-            for(int i=0; i<messageList.size() && !addedToList; i++){
-                Structure currentStructure = messageList.get(i);
-                if(ack.getTime()==currentStructure.getTime()){
-                    // item da lista de mensagens tem o mesmo clock do ack recebido
-                    // comparar o pid
-                    if(ack.getDest()<currentStructure.getId()){
-                        // o pid do ack recebida eh menor do que o pid do item da lista
-                        // cria uma nova estrutura e insere na lista
-                        Structure newStructure = new Structure();
-                        newStructure.addACK(ack);
-                        messageList.add(i, newStructure);
-                        addedToList = true;
-                    } else if(ack.getDest()==currentStructure.getId()){
-                        // o pid da mensagem recebida eh igual ao pid do item da lista
-                        // foi recebido algum ack dessa mensagem antes da propria mensagem chegar
-                        // atualiza a estrutura com a mensagem
-                        currentStructure.addACK(ack);
-                        addedToList = true;
-                    }
-                } else if(ack.getTime()<currentStructure.getTime()){
-                    // mensagem recebida tem o clock maior que o do item da lista
-                    // cria uma nova estrutura e insere na lista
-                    Structure newStructure = new Structure();
-                    newStructure.addACK(ack);
-                    messageList.add(i, newStructure);
-                    addedToList = true;
-                }
-            }
-            if(!addedToList){
-                Structure e = new Structure();
-                e.addACK(ack);
-                messageList.add(e);
-            }
-        } else {
-            if (ack.getDest()== pid) {
-                System.out.println("[Log] O processo "+ack.getId()+" está utilizando o recurso "+ack.getResource()+". Aguarde.");
-            }
+        if(!addedToList){
+            // cria um novo item no final
+            Structure e = new Structure();
+            e.addACK(ack);
+            messageList.add(e);
         }
         
         updateList();
@@ -120,11 +89,9 @@ public class MessageManager {
             boolean removed = true;
             for(int i=0; i<messageList.size() && removed; i++){
                 Structure currentStructure = messageList.get(i);
-                if(currentStructure.getMessage()!=null && currentStructure.getNumbersOfACK()==3){
-                    if(currentStructure.getTime() > clock){
-                        clock = currentStructure.getTime();
-                    }
-                    //lista.remove(i--);
+                if(currentStructure.getMessage()!=null && currentStructure.getNumbersOfACK()==2){
+                    notifyProcess(currentStructure);
+                    messageList.remove(i--);
                 } else {
                     removed = false;
                 }
@@ -135,13 +102,55 @@ public class MessageManager {
         }
     }
     
-    public synchronized void printList(){
-        for(Structure structure : messageList){
-            
+    public synchronized void notifyProcess(Structure structure){
+        if(listener!=null){
+            listener.notifyProcess(structure);
         }
+    }
+    
+    public synchronized void printList(){
         for(int i=0; i<messageList.size(); i++){
             Structure structure = messageList.get(i);
-            System.out.println("["+i+"] pid: "+structure.getId() + " - time: " + structure.getTime() + " - recurso: " + structure.getResource());
+            System.out.println("["+i+"] messageId: "+structure.getMessageId()+ " - recurso: " + structure.getRequestedResource());
         }
+    }
+    
+    public boolean isEmpty(){
+        return messageList.isEmpty();
+    }
+
+    public List<Structure> getMessageList() {
+        return messageList;
+    }
+    
+    public Message getMessage(){
+        if(!isEmpty()){
+            if(messageList.get(0).getMessage()!=null){
+                return messageList.get(0).getMessage();
+            }
+        }
+        
+        return null;
+    }
+    
+    public Message getMessage(int position){
+        if(!isEmpty()){
+            if(messageList.size()>position){
+                if(messageList.get(position).getMessage()!=null){
+                    return messageList.get(position).getMessage();
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    public boolean isRequestingFor(int resourceId){
+        for(Structure structure : messageList){
+            if(structure.getRequestedResource()==resourceId){
+                return true;
+            }
+        }
+        return false;
     }
 }

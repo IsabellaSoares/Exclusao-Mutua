@@ -15,42 +15,46 @@ import Model.Message;
 public class Convert {
     
     public static String MessageToJson(Message message){
-        String json = message.getResource()+"|"+message.getId()+"|"+message.getTime();
+        String json = "m-"+message.getMessageId()+"-"+message.getRequestedResource()+"-"+message.getSenderPid()+"-"+message.getLogicalClock()+"-"+message.getType()+"-"+message.getSenderPort();
         return json;
     }
     
     //Obtém o Id da mensagem e seu clock
     public static Message JsonToMessage(String json){
-        String[] str = json.split("|");
+        String[] str = json.split("-");
         Message message = new Message();       
-        message.setResource(Integer.parseInt(str[0]));
-        message.setId(Integer.parseInt(str[2]));
-        message.setTime(Integer.parseInt(str[4]));
+        message.setMessageId(Integer.parseInt(str[1]));
+        message.setRequestedResource(Integer.parseInt(str[2]));
+        message.setSenderPid(Integer.parseInt(str[3]));
+        message.setLogicalClock(Integer.parseInt(str[4]));
+        message.setType(Integer.parseInt(str[5]));
+        message.setSenderPort(Integer.parseInt(str[6]));
         return message;
     }
     
     //Cria a mensagem de ACK
     public static String ACKToJson(ACK ack){
-        String json = ack.getId()+"|"+ack.getTime()+"|"+ack.getResource()+"|"+ack.getIsAck()+"|"+ack.getDest();
+        String json = "a-"+ack.getMessageId()+"-"+ack.getSenderPid()+"-"+ack.getDestinationPid()+"-"+ack.getLogicalClock()+"-"+ack.getRequestedResource()+"-"+ack.getType();
         return json;
     }
     
     //Obtém Id, clock e processo que enviou o ACK
     public static ACK JsonToACK(String json){
-        String[] str = json.split("|");
+        String[] str = json.split("-");
         ACK ack = new ACK();
-        ack.setId(Integer.parseInt(str[0]));
-        ack.setTime(Integer.parseInt(str[2]));
-        ack.setResource(Integer.parseInt(str[4]));
-        ack.setIsAck(Integer.parseInt(str[6]));
-        ack.setDest(Integer.parseInt(str[8]));
+        ack.setMessageId(Integer.parseInt(str[1]));
+        ack.setSenderPid(Integer.parseInt(str[2]));
+        ack.setDestinationPid(Integer.parseInt(str[3]));
+        ack.setLogicalClock(Integer.parseInt(str[4]));
+        ack.setRequestedResource(Integer.parseInt(str[5]));
+        ack.setType(Integer.parseInt(str[6]));
         return ack;
     }
     
     //Identifica se é uma mensagem de ACK
     public static boolean isACK(String json){
-        String[] str = json.split("|");
-        if(str.length>5){
+        String[] str = json.split("-");
+        if(str!=null && str.length>0 && str[0].equals("a")){
             return true;
         }
         return false;

@@ -57,6 +57,27 @@ public class Client {
         }
     }
     
+    //Envia a mensagem para o servidor
+    public void outToServer (String json, int serverPort) throws Exception {
+        for(int i=0; i<socketList.size(); i++){
+            Socket client = socketList.get(i);
+            if(client.getPort()==serverPort){
+                DataOutputStream outToServer = new DataOutputStream(client.getOutputStream());
+
+                if(client!=null && outToServer!=null){
+                    try{
+                        outToServer.writeBytes(json + '\n');
+                        outToServer.flush();
+                    } catch (Exception e) {
+                        //e.printStackTrace();
+                        client.close();
+                        socketList.remove(i--);
+                    }
+                }
+            }
+        }
+    }
+    
     //Fecha socket
     public void close() throws Exception {
         for(Socket client : socketList){

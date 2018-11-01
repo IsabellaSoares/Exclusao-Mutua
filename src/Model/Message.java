@@ -13,44 +13,73 @@ import java.util.List;
  *
  * @author Marcelo
  */
-public class Message implements Serializable{
-    private int resource;
-    private int pid; //Id que identifica a mensagem
-    private int time; //Refere-se ao clock da mensagem
+public class Message {
+    
+    public final static int REQUEST_RESOURCE = 0;
+    public final static int FREE_RESOURCE = 1;
+    
+    private int messageId; //Id da mensagem (<logicalClock><senderPid>)
+    private int requestedResource; //Recurso solicitado
+    private int senderPid; //Pid do processo que enviou a mensagem
+    private int logicalClock; //Refere-se ao clock da mensagem
+    private int type; // 0: requisitar um recurso; 1: liberar um recurso
+    private int senderPort;
 
     public Message(){}
     
-    public Message(int recurso, int pid, int time){
-        this.resource = recurso;
-        this.pid = pid;
-        this.time = time;
+    public Message(int requestedResource, int senderPid, int logicalClock, int senderPort){
+        this.requestedResource = requestedResource;
+        this.senderPid = senderPid;
+        this.logicalClock = logicalClock;
+        this.messageId = (logicalClock*10)+senderPid;
+        this.senderPort = senderPort;
     }
 
-    public int getResource() {
-        return resource;
+    public int getMessageId() {
+        return messageId;
     }
 
-    public void setResource(int resource) {
-        this.resource = resource;
-    }
-    
-    //Retorna o pid do processo que está enviando a mensagem
-    public int getId() {
-        return pid;
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
     }
 
-    //Define o pid do processo que está enviando a mensagem
-    public void setId(int pid) {
-        this.pid = pid;
+    public int getLogicalClock() {
+        return logicalClock;
     }
 
-    //Retorna clock da mensagem
-    public int getTime() {
-        return time;
+    public void setLogicalClock(int logicalClock) {
+        this.logicalClock = logicalClock;
     }
 
-    //Define o clock da mensagem a ser enviada
-    public void setTime(int time) {
-        this.time = time;
+    public int getRequestedResource() {
+        return requestedResource;
+    }
+
+    public void setRequestedResource(int requestedResource) {
+        this.requestedResource = requestedResource;
+    }
+
+    public int getSenderPid() {
+        return senderPid;
+    }
+
+    public void setSenderPid(int senderPid) {
+        this.senderPid = senderPid;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public int getSenderPort() {
+        return senderPort;
+    }
+
+    public void setSenderPort(int senderPort) {
+        this.senderPort = senderPort;
     }
 }

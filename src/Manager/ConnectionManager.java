@@ -60,6 +60,11 @@ public class ConnectionManager {
         client.outToServer(Convert.ACKToJson(ack));
     }
     
+    //Envia ACK para o servidor
+    public void sendACKToServer(ACK ack, int serverPort) throws Exception{
+        client.outToServer(Convert.ACKToJson(ack), serverPort);
+    }
+    
     //Encerra o processo e fecha as conexões
     public void close(){
         try {

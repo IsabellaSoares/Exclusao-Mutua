@@ -5,10 +5,12 @@
  */
 package Listener;
 
+import Model.Structure;
+
 /**
  *
  * @author Isabella
  */
 public interface MessageManagerListener {
-    
+    void notifyProcess(Structure structure);
 }

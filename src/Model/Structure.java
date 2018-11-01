@@ -13,9 +13,9 @@ import java.util.List;
  * @author Marcelo
  */
 public class Structure {
-    private Integer id = null; //Id da mensagem e do ACK
-    private Integer time = null; //Clock da mensagem e do ACK
-    private Integer resource = null;
+    private Integer messageId = null; //Id da mensagem e do ACK
+    private Integer logicalClock = null; //Clock da mensagem e do ACK
+    private Integer requestedResource = null;
     private Message message; //Mensagem
     private List<ACK> ackList; //Lista de ACKs da mensagem
     
@@ -29,37 +29,27 @@ public class Structure {
     
     public void setMessage(Message message) {
         this.message = message;
-        
-        if(this.id==null){
-            this.id = message.getId();
+        if(this.messageId==null){
+            this.messageId = message.getMessageId();
         }
-        if(this.time==null){
-            this.time = message.getTime();
+        if(this.logicalClock==null){
+            this.logicalClock = message.getLogicalClock();
         }
-        if(this.resource==null){
-            this.resource = message.getResource();
+        if(this.requestedResource==null){
+            this.requestedResource = message.getRequestedResource();
         }
-    }
-
-    public Integer getTime() {
-        return time;
-    }
-
-    public Integer getId() {
-        return id;
     }
     
     public void addACK(ACK ack){
         this.ackList.add(ack);
-        
-        if(this.id==null){
-            this.id = ack.getId();
+        if(this.messageId==null){
+            this.messageId = ack.getMessageId();
         }
-        if(this.time==null){
-            this.time = ack.getTime();
+        if(this.logicalClock==null){
+            this.logicalClock = ack.getLogicalClock();
         }
-        if(this.resource==null){
-            this.resource = message.getResource();
+        if(this.requestedResource==null){
+            this.requestedResource = ack.getRequestedResource();
         }
     }
     
@@ -67,11 +57,15 @@ public class Structure {
         return this.ackList.size();
     }
 
-    public Integer getResource() {
-        return resource;
+    public Integer getMessageId() {
+        return messageId;
     }
 
-    public void setResource(Integer resource) {
-        this.resource = resource;
+    public Integer getLogicalClock() {
+        return logicalClock;
+    }
+
+    public Integer getRequestedResource() {
+        return requestedResource;
     }
 }

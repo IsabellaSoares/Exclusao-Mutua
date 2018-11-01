@@ -14,8 +14,8 @@ public class P1 {
     public static void main(String[] args) {
         int serverPort = 6789;
         int[] connectionPorts = {6790, 6791};
-        Process p = new Process();
-        p.exec(1, serverPort, connectionPorts);
+        Process p = new Process(1, serverPort, connectionPorts);
+        p.exec();
         //exec(pid do processo, porta do servidor, vetor de conexões)
     }
 }

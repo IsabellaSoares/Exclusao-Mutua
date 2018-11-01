@@ -10,55 +10,71 @@ package Model;
  * @author Marcelo
  */
 public class ACK {
-    private int id; //PID do processo que está enviando o ACK
-    private int time; //Clock
-    private int resource; //Recurso que o processo quer utilizar
-    private int dest; //Processo que pediu o recurso
-    private int isAck;
-
-    //Retorna ID da mensagem
-    public int getId() {
-        return id;
-    }
-
-    //Define ID da mensagem
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    //Retorna clock do ACK
-    public int getTime() {
-        return time;
-    }
-
-    //Define clock do ACK
-    public void setTime(int time) {
-        this.time = time;
-    }
-
-    //Retorna o processo que está enviando o ACK
-    public int getResource() {
-        return resource;
-    }
-
-    //Define o processo que está enviando o ACK
-    public void setResource(int resource) {
-        this.resource = resource;
-    }
-
-    public void setIsAck(int isAck) {
-        this.isAck = isAck;
-    }
     
-    public int getIsAck() {
-        return isAck;
+    public static final int ACK = 0;
+    public static final int NACK = 1;
+    
+    private int messageId; // id da mensagem que este se refere
+    private int senderPid; // PID do processo que está enviando o ACK
+    private int destinationPid; //Processo que pediu o recurso
+    private int logicalClock; // Clock
+    private int requestedResource; //Recurso que o processo quer utilizar
+    private int type;
+    
+    public ACK(){}
+    
+    public ACK(int senderPid, int destinationPid, int messageId, int type){
+        this.senderPid = senderPid;
+        this.destinationPid = destinationPid;
+        this.messageId = messageId;
+        this.type = type;
     }
 
-    public void setDest(int dest) {
-        this.dest = dest;
+    public int getDestinationPid() {
+        return destinationPid;
     }
 
-    public int getDest() {
-        return dest;
+    public void setDestinationPid(int destinationPid) {
+        this.destinationPid = destinationPid;
+    }
+
+    public int getLogicalClock() {
+        return logicalClock;
+    }
+
+    public void setLogicalClock(int logicalClock) {
+        this.logicalClock = logicalClock;
+    }
+
+    public int getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
+    }
+
+    public int getRequestedResource() {
+        return requestedResource;
+    }
+
+    public void setRequestedResource(int requestedResource) {
+        this.requestedResource = requestedResource;
+    }
+
+    public int getSenderPid() {
+        return senderPid;
+    }
+
+    public void setSenderPid(int senderPid) {
+        this.senderPid = senderPid;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 }

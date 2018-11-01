@@ -13,8 +13,8 @@ public class P3 {
     public static void main(String[] args) {
         int serverPort = 6791;
         int[] connectionPorts = {6789, 6790};
-        Process p = new Process();
-        p.exec(3, serverPort, connectionPorts);
+        Process p = new Process(3, serverPort, connectionPorts);
+        p.exec();
         //exec(pid do processo, porta do servidor, vetor de conexões)
     }
 }
